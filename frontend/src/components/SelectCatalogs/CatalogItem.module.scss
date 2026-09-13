@@ -1,12 +1,12 @@
 .catalog-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
   background: white;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  cursor: grab;
   transition: 0.2s;
   margin-bottom: 0.5rem;
   user-select: none;
@@ -34,5 +34,23 @@
 }
 
 .drag-handle {
-  margin-bottom: 0.2rem;
+  padding: 0.25rem 0.5rem;
+  cursor: grab;
+  touch-action: none;
+}
+
+.catalog-sort {
+  width: 9.5rem;
+  margin-left: auto;
+  padding: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 0.3rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .catalog-sort {
+    margin-right: auto;
+  }
 }

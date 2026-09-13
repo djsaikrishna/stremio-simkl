@@ -1,6 +1,11 @@
 import { useDrag, useDrop } from "react-dnd";
 import styles from "./CatalogItem.module.scss";
-import { CatalogType, frontendCatalogNames } from "@shared/catalogs";
+import {
+  CatalogType,
+  SortOption,
+  catalogSortOptions,
+  frontendCatalogNames,
+} from "@shared/catalogs";
 import { useRef } from "react";
 import type { Identifier, XYCoord } from "dnd-core";
 import { isMobileDevice } from "@/lib/utils";
@@ -10,7 +15,9 @@ type CatalogItemProps = {
   index: number;
   moveCatalog: (dragIndex: number, hoverIndex: number) => void;
   toggleSelect: (catalog: CatalogType) => void;
+  setSort: (catalog: CatalogType, sort: SortOption) => void;
   isSelected: boolean;
+  sort: SortOption;
 };
 
 type DragItem = {
@@ -26,9 +33,12 @@ export const CatalogItem = ({
   index,
   moveCatalog,
   toggleSelect,
+  setSort,
   isSelected,
+  sort,
 }: CatalogItemProps) => {
   const ref = useRef<HTMLDivElement>(null);
+  const dragHandleRef = useRef<HTMLSpanElement>(null);
 
   const [{ handlerId }, drop] = useDrop<
     DragItem,
@@ -75,7 +85,7 @@ export const CatalogItem = ({
     },
   });
 
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, drag, preview] = useDrag({
     type: "CATALOG",
     item: () => {
       return { index, catalog, type: "CATALOG" };
@@ -88,7 +98,8 @@ export const CatalogItem = ({
   const draggingOpacity = isMobile ? 1 : 0.3;
   const opacity = isDragging ? draggingOpacity : isSelected ? 1 : 0.3;
 
-  drag(drop(ref));
+  drop(preview(ref));
+  drag(dragHandleRef);
 
   return (
     <div
@@ -111,8 +122,22 @@ export const CatalogItem = ({
           className={styles["catalog-checkbox"]}
         />
       </div>
-      <span className={styles["drag-handle"]}>☰</span>
+      <span ref={dragHandleRef} className={styles["drag-handle"]}>
+        ☰
+      </span>
       {frontendCatalogNames[catalog]}
+      <select
+        className={styles["catalog-sort"]}
+        value={sort}
+        disabled={!isSelected}
+        onChange={(e) => setSort(catalog, e.target.value as SortOption)}
+      >
+        {catalogSortOptions(catalog).map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };

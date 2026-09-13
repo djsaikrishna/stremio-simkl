@@ -1,6 +1,12 @@
 import { useState } from "react";
 import styles from "./SelectCatalogs.module.scss";
-import { CatalogType, allCatalogs, defaultCatalogs } from "@shared/catalogs";
+import {
+  CatalogType,
+  SortOption,
+  allCatalogs,
+  defaultCatalogSort,
+  defaultCatalogs,
+} from "@shared/catalogs";
 import { CatalogItem } from "./CatalogItem";
 import { setSelectedCatalogs } from "@/lib/appStore";
 
@@ -12,17 +18,30 @@ export const SelectCatalogs = () => {
     allCatalogs.map((c) => ({
       name: c,
       selected: defaultCatalogs.includes(c),
+      sort: defaultCatalogSort(c),
     })),
   );
 
-  const toggleSelect = (catalog: CatalogType) => {
-    const newOrderedCatalogs = orderedCatalogs.map((c) =>
-      c.name === catalog ? { ...c, selected: !c.selected } : c,
-    );
-
-    setOrderedCatalogs(newOrderedCatalogs);
+  const updateCatalogs = (catalogs: typeof orderedCatalogs) => {
+    setOrderedCatalogs(catalogs);
     setSelectedCatalogs(
-      newOrderedCatalogs.filter((c) => c.selected).map((c) => c.name),
+      catalogs
+        .filter((c) => c.selected)
+        .map(({ name, sort }) => ({ catalog: name, sort })),
+    );
+  };
+
+  const toggleSelect = (catalog: CatalogType) => {
+    updateCatalogs(
+      orderedCatalogs.map((c) =>
+        c.name === catalog ? { ...c, selected: !c.selected } : c,
+      ),
+    );
+  };
+
+  const setSort = (catalog: CatalogType, sort: SortOption) => {
+    updateCatalogs(
+      orderedCatalogs.map((c) => (c.name === catalog ? { ...c, sort } : c)),
     );
   };
 
@@ -31,10 +50,7 @@ export const SelectCatalogs = () => {
     const [movedItem] = updatedCatalogs.splice(fromIndex, 1);
     updatedCatalogs.splice(toIndex, 0, movedItem);
 
-    setOrderedCatalogs(updatedCatalogs);
-    setSelectedCatalogs(
-      updatedCatalogs.filter((c) => c.selected).map((c) => c.name),
-    );
+    updateCatalogs(updatedCatalogs);
   };
 
   return (
@@ -43,14 +59,16 @@ export const SelectCatalogs = () => {
 
       <div className={styles["catalog-list"]}>
         <DndProvider options={HTML5toTouch}>
-          {orderedCatalogs.map(({ name, selected }, index) => (
+          {orderedCatalogs.map(({ name, selected, sort }, index) => (
             <CatalogItem
               key={name}
               catalog={name}
               index={index}
               moveCatalog={moveCatalog}
               toggleSelect={toggleSelect}
+              setSort={setSort}
               isSelected={selected}
+              sort={sort}
             />
           ))}
         </DndProvider>

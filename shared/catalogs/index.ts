@@ -38,11 +38,39 @@ export const frontendCatalogNames: Record<CatalogType, string> = {
 	[CatalogType.ANIME_COMPLETED]: 'Anime Completed',
 };
 
+export type SelectedCatalog = {
+	catalog: CatalogType;
+	sort: SortOption;
+};
+
+const isPlanToWatch = (catalog: string) => catalog.includes('plan-to-watch');
+
+export const catalogSortOptions = (catalog: string) =>
+	isPlanToWatch(catalog)
+		? [SortOption.RECENTLY_ADDED, SortOption.YEAR, SortOption.TITLE]
+		: allSortOptions;
+
+export const defaultCatalogSort = (catalog: string) =>
+	isPlanToWatch(catalog) ? SortOption.YEAR : SortOption.LAST_WATCHED;
+
+export const resolveSort = (catalog: CatalogType, sort?: SortOption) =>
+	catalogSortOptions(catalog).find((option) => option === sort) ??
+	defaultCatalogSort(catalog);
+
+export const toSelectedCatalogs = (
+	catalogs: CatalogType[],
+): SelectedCatalog[] =>
+	catalogs.map((catalog) => ({ catalog, sort: defaultCatalogSort(catalog) }));
+
+export const defaultSelectedCatalogs = toSelectedCatalogs(defaultCatalogs);
+
 export const catalogToInt = (catalog: CatalogType) => {
 	return allCatalogs.indexOf(catalog);
 };
 
-export const catalogExtra = (catalog: CatalogType) => [
+export const sortToInt = (sort: SortOption) => allSortOptions.indexOf(sort);
+
+export const catalogExtra = (catalog: CatalogType, sort: SortOption) => [
 	{
 		name: 'skip',
 		isRequired: false,
@@ -50,9 +78,11 @@ export const catalogExtra = (catalog: CatalogType) => [
 	{
 		name: 'Sort',
 		isRequired: false,
-		options: catalog.includes('plan-to-watch')
-			? [SortOption.RECENTLY_ADDED, SortOption.YEAR, SortOption.TITLE]
-			: allSortOptions,
+		// Stremio preselects the first option
+		options: [
+			sort,
+			...catalogSortOptions(catalog).filter((option) => option !== sort),
+		],
 	},
 ];
 

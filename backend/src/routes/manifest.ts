@@ -3,11 +3,11 @@ import { Express } from "express";
 import { decryptConfig } from "@/encryption";
 import generateManifest from "@/generateManifest";
 import { getSimklUsername } from "@/simkl";
-import { defaultCatalogs } from "@shared/catalogs";
+import { defaultSelectedCatalogs } from "@shared/catalogs";
 
 export default async function registerManifestRoute(app: Express) {
   app.get("/manifest.json", async (_req, res) => {
-    res.send(generateManifest("", defaultCatalogs, false));
+    res.send(generateManifest("", defaultSelectedCatalogs, false));
   });
 
   app.get("/:config/manifest.json", async (req, res) => {

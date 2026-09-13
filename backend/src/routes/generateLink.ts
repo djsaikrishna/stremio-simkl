@@ -1,35 +1,40 @@
-import { Express } from "express";
+import { Express } from 'express';
 
-import { generateEncryptedConfig } from "@/encryption";
-import { getSimklAccessToken } from "@/simkl";
-import { validateCatalogs } from "@/utils";
-import { getConfig } from "@/lib/config";
+import { generateEncryptedConfig } from '@/encryption';
+import { getSimklAccessToken } from '@/simkl';
+import { validateCatalogs } from '@/utils';
+import { getConfig } from '@/lib/config';
+import { SelectedCatalog } from '@shared/catalogs';
 
 export default async function registerGenerateLinkRoute(app: Express) {
-  app.post("/gen-link", async (req, res) => {
-    const data = req.body as { code: string; selectedCatalogs?: string[] };
+	app.post('/gen-link', async (req, res) => {
+		const data = req.body as {
+			code?: string;
+			selectedCatalogs?: SelectedCatalog[];
+		};
 
-    if (!data || !data.code) {
-      res.status(400).send({ error: "No data provided!" });
-    }
+		if (!data || !data.code) {
+			res.status(400).send({ error: 'No data provided!' });
+			return;
+		}
 
-    const simklToken = await getSimklAccessToken(data.code);
-    if (!simklToken) {
-      res.status(400).send({ error: "Invalid simkl code!" });
-      return;
-    }
+		const simklToken = await getSimklAccessToken(data.code);
+		if (!simklToken) {
+			res.status(400).send({ error: 'Invalid simkl code!' });
+			return;
+		}
 
-    const selectedCatalogs = validateCatalogs(data.selectedCatalogs);
+		const selectedCatalogs = validateCatalogs(data.selectedCatalogs);
 
-    const encryptedConfig = generateEncryptedConfig(
-      simklToken,
-      selectedCatalogs,
-    );
+		const encryptedConfig = generateEncryptedConfig(
+			simklToken,
+			selectedCatalogs,
+		);
 
-    res.send({
-      link: `stremio://${getConfig().backendHost}/${encryptedConfig}/manifest.json`,
-    });
+		res.send({
+			link: `stremio://${getConfig().backendHost}/${encryptedConfig}/manifest.json`,
+		});
 
-    console.log(`Generated install link`);
-  });
+		console.log(`Generated install link`);
+	});
 }
