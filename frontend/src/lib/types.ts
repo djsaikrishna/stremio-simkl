@@ -1,7 +1,7 @@
-import { SelectedCatalog } from "@shared/catalogs";
+import { SelectedCatalog } from '@shared/catalogs';
 
 export interface AppStoreState {
-  code: string | undefined;
-  installLink: string | undefined;
-  selectedCatalogs: SelectedCatalog[];
+	code: string | undefined;
+	installLink: string | undefined;
+	selectedCatalogs: SelectedCatalog[];
 }

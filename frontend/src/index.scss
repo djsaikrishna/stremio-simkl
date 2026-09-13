@@ -4,22 +4,24 @@
 	margin: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
 	min-height: 100dvh;
 }
 
 body {
 	color: #1d1d1d;
 	background-color: #4e4e4e;
-	font-family: "Roboto";
-	background-image: url("/shai-pal-unsplash.webp");
+	font-family: 'Roboto';
+	background-image: url('/shai-pal-unsplash.webp');
 	background-repeat: no-repeat;
 	background-size: cover;
 	background-position: center;
 }
 
 body::after {
-	content: "Photo by Shai Pal on Unsplash";
+	content: 'Photo by Shai Pal on Unsplash';
 	position: absolute;
 	left: 1rem;
 	bottom: 1rem;
