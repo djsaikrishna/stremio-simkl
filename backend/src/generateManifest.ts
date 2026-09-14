@@ -30,7 +30,7 @@ export default function generateManifest(
 
 	return {
 		id,
-		version: '0.3.1',
+		version: '0.3.2',
 		name: 'Simkl Watchlists',
 		description,
 		logo: 'https://eu.simkl.in/img_favicon/v2/favicon-192x192.png',

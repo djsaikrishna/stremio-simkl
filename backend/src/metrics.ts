@@ -1,6 +1,9 @@
 import { RequestHandler } from 'express';
 import client from 'prom-client';
 
+import { countActiveUsers } from './lib/activeUsers';
+import { logger } from './lib/logger';
+
 let register: client.Registry;
 
 export const getRegister = () => register;
@@ -18,11 +21,33 @@ const httpRequestCounter = new client.Counter({
 	labelNames: ['method', 'route', 'code'],
 });
 
+const activeUserWindow = 30 * 24 * 60 * 60;
+
+const activeUsers = new client.Gauge({
+	name: 'active_users',
+	help: 'Unique users seen in the last 30 days',
+	async collect() {
+		try {
+			const count = await countActiveUsers(activeUserWindow);
+
+			if (count === undefined) {
+				this.remove();
+				return;
+			}
+
+			this.set(count);
+		} catch (error) {
+			logger.error({ err: error }, 'Failed to collect active users');
+		}
+	},
+});
+
 export const initMetrics = () => {
 	register = new client.Registry();
 
 	register.registerMetric(httpRequestDurationMicroseconds);
 	register.registerMetric(httpRequestCounter);
+	register.registerMetric(activeUsers);
 };
 
 export const metricsEndpoint: RequestHandler = async (_req, res) => {

@@ -2,6 +2,7 @@ import { Express } from 'express';
 
 import { decryptConfig } from '@/encryption';
 import generateManifest from '@/generateManifest';
+import { hashToken, markUserActive } from '@/lib/activeUsers';
 import { getSimklUsername } from '@/simkl';
 import { defaultSelectedCatalogs } from '@shared/catalogs';
 
@@ -16,6 +17,8 @@ export default async function registerManifestRoute(app: Express) {
 			res.status(400).send('Invalid config');
 			return;
 		}
+
+		markUserActive(hashToken(config.simklToken));
 
 		const username = await getSimklUsername(config.simklToken);
 

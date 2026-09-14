@@ -1,4 +1,5 @@
 import { decryptConfig } from '@/encryption';
+import { hashToken, markUserActive } from '@/lib/activeUsers';
 import { getConfig } from '@/lib/config';
 import { getLogger } from '@/lib/requestContext';
 import {
@@ -88,6 +89,8 @@ export const generateCatalog = async (
 			error: 'Invalid config',
 		};
 	}
+
+	markUserActive(hashToken(decryptedConfig.simklToken));
 
 	const simklMediaType = convertStremioMediaTypeToSimkl(stremioMediaType);
 	if (!simklMediaType) {

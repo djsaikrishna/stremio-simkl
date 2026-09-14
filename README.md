@@ -6,13 +6,22 @@ Stremio addon to display your Simkl Watchlists.
 [Install addon](https://stremio-simkl.malachi.io)
 
 
+## Features
+
+- Choose which Simkl catalogs to show + reorder support
+- Sort each Simkl catalog by recently added, last watched, rating, year or title.
+- Optional RPDB posters.
+
+
 ## Development
 
 1. Create `.env` files inside the `backend` and `frontend` folders based on the `.env.example` files.
 
-2. You will need a TMDB API key, an RPDB API key (optional), and a Simkl app.
+2. You will need a TMDB API key, an RPDB API key (optional), a Simkl app, and an encryption key and salt.
 
    - To create a Simkl app, visit: [Simkl Developer Settings](https://simkl.com/settings/developer/).
+   - Generate `ENCRYPTION_KEY` and `ENCRYPTION_SALT` with `openssl rand -hex 32`.
+   - Changing encryption key/salt invalidates existing install links.
 
 3. Install dependencies for both the frontend and backend:
 
@@ -40,6 +49,7 @@ The backend is a simple and stateless express server that uses redis to cache th
 The user configuration for the addon (Simkl user token) is encrypted using aes-192-cbc.
 
 
+
 ### Backend
 
 - Typescript
@@ -47,6 +57,7 @@ The user configuration for the addon (Simkl user token) is encrypted using aes-1
 - Express
 - Redis (for caching)
 - Prometheus (for metrics)
+- Pino (structured logging)
 
 ### Frontend
 
@@ -54,6 +65,8 @@ The user configuration for the addon (Simkl user token) is encrypted using aes-1
 - React
 - Vite
 - Zustand (state management)
+- Sass
+- React DnD (drag and drop)
 
 
 ## Contributing
