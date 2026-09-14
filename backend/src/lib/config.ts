@@ -20,9 +20,8 @@ export type Config = {
 		enabled: boolean;
 		apiKey: string;
 	};
-	sentry: {
-		enabled: boolean;
-		dsn: string;
+	log: {
+		level: string;
 	};
 	env: string;
 	port: number;
@@ -36,6 +35,9 @@ let config: Config | null = null;
 
 export const loadConfig = (): Config => {
 	dotenv.config();
+
+	const env = process.env.NODE_ENV || 'development';
+	const isProduction = env === 'production';
 
 	return {
 		simkl: {
@@ -54,15 +56,14 @@ export const loadConfig = (): Config => {
 			port: parseInt(process.env.REDIS_PORT || '6379'),
 			host: process.env.REDIS_HOST || '',
 		},
-		sentry: {
-			enabled: process.env.ENABLE_SENTRY === 'true',
-			dsn: process.env.SENTRY_DSN || '',
-		},
 		rpdb: {
 			enabled: process.env.USE_RPDB === 'true',
 			apiKey: process.env.RPDB_API_KEY || '',
 		},
-		env: process.env.NODE_ENV || 'development',
+		log: {
+			level: process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug'),
+		},
+		env,
 		port: parseInt(process.env.PORT || '43001'),
 		backendHost: process.env.BACKEND_HOST || '',
 		frontendUrl: process.env.FRONTEND_URL || '',

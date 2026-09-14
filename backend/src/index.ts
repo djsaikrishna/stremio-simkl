@@ -1,5 +1,5 @@
 import cors from 'cors';
-import express from 'express';
+import express, { ErrorRequestHandler } from 'express';
 
 import { connectToRedis } from '@/cache';
 import { initEncryption } from '@/encryption';
@@ -11,19 +11,19 @@ import registerConfigureRoute from './routes/configure';
 import { initMetrics, metricsEndpoint, metricsMiddleware } from './metrics';
 
 // import { publishToCentral } from "stremio-addon-sdk";
-import { initSentry, setupSentryRequestHandler } from './sentry';
 import { getConfig } from './lib/config';
+import { httpLogger } from './lib/httpLogger';
+import { logger } from './lib/logger';
+import { requestContextMiddleware } from './lib/requestContext';
 
 const config = getConfig();
-
-if (config.sentry.enabled) {
-	initSentry();
-}
 
 initEncryption();
 
 const app = express();
 
+app.use(httpLogger);
+app.use(requestContextMiddleware);
 app.use(cors());
 app.use(express.json());
 
@@ -46,19 +46,29 @@ registerConfigureRoute(app);
 registerGenerateLinkRoute(app);
 registerCatalogRoute(app);
 
-if (config.sentry.enabled) {
-	setupSentryRequestHandler(app);
-}
+const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
+	const status = error.status || 500;
+
+	if (status >= 500) {
+		req.log.error({ err: error }, 'Request failed');
+		res.status(500).send({ error: 'Internal Server Error' });
+		return;
+	}
+
+	req.log.warn({ err: error }, 'Request rejected');
+	res.status(status).send({ error: error.message });
+};
+
+app.use(errorHandler);
 
 if (config.redis.enabled) {
-	connectToRedis().catch((error) => {
-		console.error('Failed to connect to Redis');
-		console.error(error);
-	});
+	connectToRedis().catch((error) =>
+		logger.error({ err: error }, 'Failed to connect to Redis'),
+	);
 }
 
-app.listen(config.port, () => {
-	console.log(`Server listening on port ${config.port}`);
+const server = app.listen(config.port, () => {
+	logger.info({ port: config.port }, `Server listening on port ${config.port}`);
 
 	// if (process.env.NODE_ENV == "production") {
 	// console.log("Publishing to central...");
@@ -70,4 +80,11 @@ app.listen(config.port, () => {
 	// 	console.error("Failed to publish to central", error);
 	// }
 	// }
+});
+
+process.on('SIGTERM', () => {
+	logger.info('Shutting down');
+
+	server.closeIdleConnections();
+	server.close(() => process.exit(0));
 });

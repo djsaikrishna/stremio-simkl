@@ -31,10 +31,10 @@ export default async function registerGenerateLinkRoute(app: Express) {
 			selectedCatalogs,
 		);
 
+		req.log.info('Generated install link');
+
 		res.send({
 			link: `stremio://${getConfig().backendHost}/${encryptedConfig}/manifest.json`,
 		});
-
-		console.log(`Generated install link`);
 	});
 }

@@ -9,6 +9,7 @@ import {
 	toSelectedCatalogs,
 } from '@shared/catalogs';
 import { getConfig } from './lib/config';
+import { getLogger } from './lib/requestContext';
 
 const algorithm = 'aes-192-cbc';
 let key: Buffer;
@@ -44,7 +45,7 @@ export function encrypt(data: EncryptedConfig): string {
 		const encrypted = Buffer.concat([cipher.update(dataStr), cipher.final()]);
 		return `${iv.toString('hex')}:${encrypted.toString('hex')}`;
 	} catch (error) {
-		console.log('Error encrypting data', error);
+		getLogger('encryption').error({ err: error }, 'Error encrypting data');
 		return '';
 	}
 }
@@ -79,7 +80,7 @@ export function decrypt(data: string): EncryptedConfig | string {
 
 		return decrypted.toString();
 	} catch (error) {
-		console.log('Error decrypting data', error);
+		getLogger('encryption').warn({ err: error }, 'Error decrypting data');
 		return { simklToken: '', selectedCatalogs: '' };
 	}
 }

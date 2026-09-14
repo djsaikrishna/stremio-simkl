@@ -19,9 +19,8 @@ export default async function registerManifestRoute(app: Express) {
 
 		const username = await getSimklUsername(config.simklToken);
 
-		const manifest = generateManifest(username, config.selectedCatalogs);
-		console.log(`Generated manifest for ${username}`);
+		req.log.info({ username }, `Generated manifest for ${username}`);
 
-		res.send(manifest);
+		res.send(generateManifest(username, config.selectedCatalogs));
 	});
 }

@@ -1,5 +1,6 @@
 import { decryptConfig } from '@/encryption';
 import { getConfig } from '@/lib/config';
+import { getLogger } from '@/lib/requestContext';
 import {
 	StremioMediaType,
 	convertStremioMediaTypeToSimkl,
@@ -76,7 +77,10 @@ export const generateCatalog = async (
 			error: string;
 	  }
 > => {
-	console.log('Generating catalog', catalogName);
+	getLogger('catalog').debug(
+		{ catalog: catalogName, sort },
+		'Generating catalog',
+	);
 	const decryptedConfig = decryptConfig(config);
 	if (!decryptedConfig.simklToken) {
 		return {

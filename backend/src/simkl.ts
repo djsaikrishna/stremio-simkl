@@ -2,11 +2,23 @@ import axios from 'axios';
 
 import { SimklHistoryResponse } from '@/types';
 import { getConfig } from './lib/config';
+import { getLogger } from './lib/requestContext';
 import { SimklMediaType } from './lib/mediaTypes';
 
 const SIMKL_API = 'https://api.simkl.com';
 
 const SIMKL_TIMEOUT = 15000;
+
+const logSimklError = (url: string, error: any) =>
+	getLogger('simkl').error(
+		{
+			err: error,
+			url,
+			status: error.response?.status,
+			response: error.response?.data,
+		},
+		'SIMKL API ERROR',
+	);
 
 async function simklApiGetRequest(url: string, token?: string) {
 	try {
@@ -18,10 +30,7 @@ async function simklApiGetRequest(url: string, token?: string) {
 			},
 		});
 	} catch (error: any) {
-		console.error('SIMKL API ERROR', url);
-
-		if (error.response) console.error(error.response.data);
-		if (error.message) console.error(error.message);
+		logSimklError(url, error);
 		return null;
 	}
 }
@@ -37,10 +46,7 @@ async function simklApiPostRequest(url: string, data: any, token?: string) {
 			},
 		});
 	} catch (error: any) {
-		console.error('SIMKL API ERROR', url);
-
-		if (error.response) console.error(error.response.data);
-		if (error.message) console.error(error.message);
+		logSimklError(url, error);
 		return null;
 	}
 }

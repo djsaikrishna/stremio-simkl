@@ -4,6 +4,7 @@ import getClient from '@/cache';
 import { CleanedTMDBMovie, CleanedTMDBShow } from '@/types';
 import { cleanTMDBMovieMeta, cleanTMDBShowMeta } from '@/utils';
 import { getConfig } from './lib/config';
+import { getLogger } from './lib/requestContext';
 import { StremioMediaType } from './lib/mediaTypes';
 
 const TMDB_API = 'https://api.themoviedb.org/3';
@@ -67,11 +68,19 @@ export async function getTMDBMeta(
 
 		return cleanedMeta;
 	} catch (error: any) {
-		console.error('TMDB API ERROR', endpoint.path, tmdbId);
+		const details = {
+			err: error,
+			tmdbId,
+			type,
+			status: error.response?.status,
+		};
 
-		if (error.message) console.error(error.message);
-
-		if (isMissing(error)) await cacheMeta(key, null, missCacheTTL);
+		if (isMissing(error)) {
+			getLogger('tmdb').debug(details, 'TMDB item not found');
+			await cacheMeta(key, null, missCacheTTL);
+		} else {
+			getLogger('tmdb').error(details, 'TMDB API ERROR');
+		}
 
 		return null;
 	}
@@ -92,7 +101,7 @@ async function getCachedMeta(
 
 		return JSON.parse(dataStr);
 	} catch (error) {
-		console.error(error);
+		getLogger('tmdb').error({ err: error, key }, 'Failed to read cached meta');
 		return undefined;
 	}
 }
@@ -110,6 +119,6 @@ async function cacheMeta(
 			EX: ttl,
 		});
 	} catch (error) {
-		console.error(error);
+		getLogger('tmdb').error({ err: error, key }, 'Failed to cache meta');
 	}
 }
