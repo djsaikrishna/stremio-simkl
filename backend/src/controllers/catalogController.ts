@@ -119,10 +119,7 @@ export const generateCatalog = async (
 		};
 	}
 
-	let items: SimklItem[] = userHistory[simklMediaType] || [];
-	if (items.length == 0) {
-		return [];
-	}
+	const allItems: SimklItem[] = userHistory[simklMediaType] || [];
 
 	const stremioItems: SimklCatalogItem[] = [];
 
@@ -131,27 +128,21 @@ export const generateCatalog = async (
 			({ catalog }) => catalog === catalogName,
 		)?.sort ?? defaultCatalogSort(catalogName);
 
-	items.sort(sortComparators[sort || defaultSort]);
+	// Dont display shows that the user finished watching
+	const isFinishedShow = (item: SimklItem) =>
+		stremioMediaType == StremioMediaType.Series &&
+		listType == 'watching' &&
+		item.watched_episodes_count != 0 &&
+		!(item as SimklShow).next_to_watch;
 
-	// Skip items
-	items = items.slice(skip);
-
-	// Limit items
-	items = items.slice(0, maxItems);
+	const items = allItems
+		.filter((item) => !isFinishedShow(item))
+		.sort(sortComparators[sort || defaultSort])
+		.slice(skip, skip + maxItems);
 
 	for (const simklItem of items) {
 		const itemMeta =
 			(simklItem as SimklMovie).movie || (simklItem as SimklShow).show;
-
-		// Dont display shows that the user finished watching
-		if (
-			stremioMediaType == StremioMediaType.Series &&
-			listType == 'watching' &&
-			simklItem.watched_episodes_count != 0 &&
-			!(simklItem as SimklShow).next_to_watch
-		) {
-			continue;
-		}
 
 		const tmdbMeta = itemMeta.ids.tmdb
 			? await getTMDBMeta(itemMeta.ids.tmdb, stremioMediaType)

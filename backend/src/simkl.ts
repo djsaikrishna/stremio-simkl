@@ -6,9 +6,12 @@ import { SimklMediaType } from './lib/mediaTypes';
 
 const SIMKL_API = 'https://api.simkl.com';
 
+const SIMKL_TIMEOUT = 15000;
+
 async function simklApiGetRequest(url: string, token?: string) {
 	try {
 		return await axios.get(`${SIMKL_API}/${url}`, {
+			timeout: SIMKL_TIMEOUT,
 			headers: {
 				'simkl-api-key': getConfig().simkl.clientId,
 				Authorization: token ? `Bearer ${token}` : '',
@@ -26,6 +29,7 @@ async function simklApiGetRequest(url: string, token?: string) {
 async function simklApiPostRequest(url: string, data: any, token?: string) {
 	try {
 		return await axios.post(`${SIMKL_API}/${url}`, data, {
+			timeout: SIMKL_TIMEOUT,
 			headers: {
 				'Content-Type': 'application/json',
 				'simkl-api-key': getConfig().simkl.clientId,

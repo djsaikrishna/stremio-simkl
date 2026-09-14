@@ -33,9 +33,9 @@ export async function connectToRedis() {
 	});
 	client.on('connect', () => console.log('Connected to Redis!'));
 
-	client.connect();
+	await client.connect();
 }
 
 export default function getClient() {
-	return client;
+	return client?.isReady ? client : undefined;
 }

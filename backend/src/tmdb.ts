@@ -10,141 +10,104 @@ const TMDB_API = 'https://api.themoviedb.org/3';
 
 const tmdbAxios = axios.create({
 	baseURL: TMDB_API,
+	timeout: 5000,
 	headers: {
 		Authorization: `Bearer ${getConfig().tmdbApiKey}`,
 	},
 });
 
+const cacheTTL = 60 * 60 * 24 * 30;
+const missCacheTTL = 60 * 60 * 24;
+
+type CleanedTMDBMeta = CleanedTMDBMovie | CleanedTMDBShow;
+
+const endpoints: Record<
+	StremioMediaType,
+	{
+		path: string;
+		cacheKey: (tmdbId: string) => string;
+		clean: (data: any) => CleanedTMDBMeta;
+	}
+> = {
+	[StremioMediaType.Movie]: {
+		path: 'movie',
+		cacheKey: (tmdbId) => `tmdb:movie:${tmdbId}`,
+		clean: cleanTMDBMovieMeta,
+	},
+	[StremioMediaType.Series]: {
+		path: 'tv',
+		cacheKey: (tmdbId) => `tmdb:tv:${tmdbId}`,
+		clean: cleanTMDBShowMeta,
+	},
+	[StremioMediaType.Anime]: {
+		path: 'tv',
+		cacheKey: (tmdbId) => `tmdb:tv:${tmdbId}`,
+		clean: cleanTMDBShowMeta,
+	},
+};
+
 export async function getTMDBMeta(
 	tmdbId: string,
 	type: StremioMediaType,
-): Promise<CleanedTMDBMovie | CleanedTMDBShow | null> {
-	switch (type) {
-		case StremioMediaType.Series:
-		case String(StremioMediaType.Anime):
-			return getTMDBShowMeta(tmdbId);
-		case StremioMediaType.Movie:
-			return getTMDBMovieMeta(tmdbId);
-		default:
-			return null;
-	}
-}
+): Promise<CleanedTMDBMeta | null> {
+	const endpoint = endpoints[type];
+	if (!tmdbId || !endpoint) return null;
 
-export async function getTMDBMovieMeta(
-	tmdbId: string,
-): Promise<CleanedTMDBMovie | null> {
+	const key = endpoint.cacheKey(tmdbId);
+
+	const cached = await getCachedMeta(key);
+	if (cached !== undefined) return cached;
+
 	try {
-		const cached = await getCachedTMDBMovieMeta(tmdbId);
-		if (cached) return cached;
+		const result = await tmdbAxios.get(`/${endpoint.path}/${tmdbId}`);
 
-		const result = await tmdbAxios.get(`/movie/${tmdbId}`);
+		const cleanedMeta = endpoint.clean(result.data);
 
-		const cleanedMeta = cleanTMDBMovieMeta(result.data);
-
-		await cacheTMDBMovieMeta(tmdbId, cleanedMeta);
+		await cacheMeta(key, cleanedMeta, cacheTTL);
 
 		return cleanedMeta;
 	} catch (error: any) {
-		console.error('TMDB MOVIE API ERROR', tmdbId);
+		console.error('TMDB API ERROR', endpoint.path, tmdbId);
 
 		if (error.message) console.error(error.message);
 
-		return null;
-	}
-}
-
-export async function getTMDBShowMeta(
-	tmdbId: string,
-): Promise<CleanedTMDBShow | null> {
-	try {
-		const cached = await getCachedTMDBShowMeta(tmdbId);
-		if (cached) return cached;
-
-		const result = await tmdbAxios.get(`/tv/${tmdbId}`);
-
-		const cleanedMeta = cleanTMDBShowMeta(result.data);
-
-		await cacheTMDBShowMeta(tmdbId, cleanedMeta);
-
-		return cleanedMeta;
-	} catch (error: any) {
-		console.error('TMDB SHOW API ERROR', tmdbId);
-
-		if (error.message) console.error(error.message);
+		if (isMissing(error)) await cacheMeta(key, null, missCacheTTL);
 
 		return null;
 	}
 }
 
-// 30 days
-const cacheTTL = 60 * 60 * 24 * 30;
+const isMissing = (error: any) => error.response?.status === 404;
 
-async function getCachedTMDBMovieMeta(
-	tmdbId: string,
-): Promise<CleanedTMDBMovie | null> {
+// undefined = nothing cached, null = cache miss
+async function getCachedMeta(
+	key: string,
+): Promise<CleanedTMDBMeta | null | undefined> {
 	try {
-		if (!tmdbId) return null;
-
 		const redisClient = getClient();
-		if (!redisClient) return null;
+		if (!redisClient) return undefined;
 
-		const dataStr = await redisClient.get(tmdbId);
-		if (!dataStr) return null;
+		const dataStr = await redisClient.get(key);
+		if (dataStr === null) return undefined;
 
-		const data = JSON.parse(dataStr);
-		return data;
+		return JSON.parse(dataStr);
 	} catch (error) {
 		console.error(error);
-		return null;
+		return undefined;
 	}
 }
 
-async function getCachedTMDBShowMeta(
-	tmdbId: string,
-): Promise<CleanedTMDBShow | null> {
-	try {
-		if (!tmdbId) return null;
-
-		const redisClient = getClient();
-		if (!redisClient) return null;
-
-		const dataStr = await redisClient.get(tmdbId);
-		if (!dataStr) return null;
-
-		const data = JSON.parse(dataStr);
-		return data;
-	} catch (error) {
-		console.error(error);
-		return null;
-	}
-}
-
-async function cacheTMDBMovieMeta(
-	tmdbId: string,
-	meta: CleanedTMDBMovie,
+async function cacheMeta(
+	key: string,
+	meta: CleanedTMDBMeta | null,
+	ttl: number,
 ): Promise<void> {
 	try {
 		const redisClient = getClient();
 		if (!redisClient) return;
 
-		await redisClient.set(tmdbId, JSON.stringify(meta), {
-			EX: cacheTTL,
-		});
-	} catch (error) {
-		console.error(error);
-	}
-}
-
-async function cacheTMDBShowMeta(
-	tmdbId: string,
-	meta: CleanedTMDBShow,
-): Promise<void> {
-	try {
-		const redisClient = getClient();
-		if (!redisClient) return;
-
-		await redisClient.set(tmdbId, JSON.stringify(meta), {
-			EX: cacheTTL,
+		await redisClient.set(key, JSON.stringify(meta), {
+			EX: ttl,
 		});
 	} catch (error) {
 		console.error(error);

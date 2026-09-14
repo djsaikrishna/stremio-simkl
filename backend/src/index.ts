@@ -50,11 +50,15 @@ if (config.sentry.enabled) {
 	setupSentryRequestHandler(app);
 }
 
-app.listen(config.port, async () => {
+if (config.redis.enabled) {
+	connectToRedis().catch((error) => {
+		console.error('Failed to connect to Redis');
+		console.error(error);
+	});
+}
+
+app.listen(config.port, () => {
 	console.log(`Server listening on port ${config.port}`);
-	if (config.redis.enabled) {
-		connectToRedis();
-	}
 
 	// if (process.env.NODE_ENV == "production") {
 	// console.log("Publishing to central...");
